@@ -81,12 +81,8 @@ pipeline {
 
     post {
         always {
-            stage('Destroy Infrastructure') {
-                steps {
-                    echo "Destroying AWS infrastructure..."
-                    sh 'terraform destroy -auto-approve'
-                }
-            }
+            echo "Destroying AWS infrastructure..."
+            sh 'terraform destroy -auto-approve'
         }
     }
 }
