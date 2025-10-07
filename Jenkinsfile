@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        dockerContainer { image 'hashicorp/terraform:latest' }
+        docker { image 'hashicorp/terraform:latest' }
     }
 
     environment {
