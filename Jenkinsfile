@@ -1,5 +1,4 @@
 pipeline {
-    // Użyj dowolnego dostępnego agenta, na którym zainstalowany jest Terraform i Python
     agent any
 
     environment {
@@ -41,8 +40,6 @@ pipeline {
         stage('Train Model') {
             steps {
                 sh '''
-                    # WAŻNE: Zakładamy, że python3 i moduł venv są już zainstalowane na agencie.
-                    # Usunięto komendę 'apk add', ponieważ była specyficzna dla kontenera Alpine.
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install -r requirements.txt
@@ -55,7 +52,7 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    mlflow experiments list
+                    mlflow experiment list
                 '''
             }
         }
@@ -64,8 +61,7 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    # Uwaga: Ta komenda zadziała, jeśli model został zarejestrowany w MLflow Model Registry.
-                    mlflow models list
+                    mlflow model list
                 '''
             }
         }
