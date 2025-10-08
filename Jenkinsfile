@@ -50,20 +50,11 @@ pipeline {
             }
         }
         
-        stage('Show MLflow Runs') {
+        stage('Show MLflow Info') {
             steps {
                 sh '''
                     . venv/bin/activate
-                    mlflow runs list
-                '''
-            }
-        }
-
-        stage('Show Mlflow Artifacts') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-                    mlflow artifacts list
+                    python3 show_mlflow_info.py
                 '''
             }
         }
