@@ -1,26 +1,51 @@
+// Jenkinsfile
 pipeline {
+    // KROK 1: Używamy obrazu Python, który pozwala instalować pakiety i ma już Pythona.
+    // Dajemy mu też uprawnienia roota, aby mógł instalować Terraform.
     agent {
-        docker { image 'hashicorp/terraform:latest' }
+        docker { 
+            image 'python:3.9-alpine'
+            args '-u root'
+        }
     }
 
     environment {
         AWS_REGION          = 'eu-north-1'
-        AWS_CREDENTIALS     = credentials('aws-credentials-id') 
+        AWS_CREDENTIALS     = credentials('aws-credentials-id')
+        // Definiujemy ścieżkę, aby polecenia terraform i mlflow były dostępne
+        PATH                = "/usr/local/bin:/usr/bin:/bin:/sbin:${env.WORKSPACE}/venv/bin"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Setup Tools') {
             steps {
-                checkout scm
+                sh '''
+                    # KROK 2: Instalujemy Terraform i niezbędne pakiety systemowe
+                    echo "--- Installing Tools ---"
+                    apk add --no-cache curl unzip git
+                    curl -LO https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
+                    unzip terraform_1.5.7_linux_amd64.zip
+                    mv terraform /usr/local/bin/
+                    terraform --version
+
+                    # KROK 3: Tworzymy i aktywujemy środowisko Python raz
+                    echo "--- Setting up Python venv ---"
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --no-cache-dir -r requirements.txt
+                    echo "------------------------"
+                '''
             }
         }
 
-        stage('Provision Infrastructure with Terraform') {
+        stage('Provision Infrastructure') {
             steps {
                 sh '''
+                    echo "--- Running Terraform ---"
                     terraform init
                     terraform validate
                     terraform apply -auto-approve
+                    echo "-----------------------"
                 '''
             }
         }
@@ -41,39 +66,19 @@ pipeline {
 
         stage('Train Model') {
             steps {
-                sh '''
-                    apk add --no-cache python3 py3-pip
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install -r requirements.txt
-                    python train.py
-                '''
+                // KROK 4: Nie musimy już instalować zależności, są gotowe
+                sh 'python train.py'
             }
         }
 
-        // --- NOWY ETAP: Wyświetlanie eksperymentów ---
-        stage('Show MLflow Experiments') {
+        stage('Show MLflow Experiments & Models') {
             steps {
                 sh '''
-                    . venv/bin/activate
                     echo "--- Listing MLflow Experiments ---"
                     mlflow experiments list
-                    echo "--------------------------------"
-                '''
-            }
-        }
-
-        // --- NOWY ETAP: Wyświetlanie modeli ---
-        stage('Show Registered Models') {
-            steps {
-                sh '''
-                    . venv/bin/activate
                     echo "--- Listing Registered Models ---"
-                    # Uwaga: Ta komenda zadziała, jeśli model został zarejestrowany.
-                    # Twój skrypt loguje model jako artefakt, ale nie rejestruje go.
-                    # Aby go zarejestrować, użyj mlflow.register_model()
                     mlflow models list
-                    echo "-------------------------------"
+                    echo "--------------------------------"
                 '''
             }
         }
@@ -81,8 +86,10 @@ pipeline {
 
     post {
         always {
-            echo "Destroying AWS infrastructure..."
-            sh 'terraform destroy -auto-approve'
+            node {
+                echo "Destroying AWS infrastructure..."
+                sh 'terraform destroy -auto-approve'
+            }
         }
     }
 }
