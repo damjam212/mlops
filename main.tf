@@ -119,6 +119,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "mlflow_artifacts_lifecycle" {
   rule {
     id     = "auto-delete-after-3-days"
     status = "Enabled"
+    filter {}
     expiration {
       days = 3
     }

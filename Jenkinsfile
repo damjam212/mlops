@@ -43,25 +43,27 @@ pipeline {
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install -r requirements.txt
+                    echo "--- mlflow version ---"
+                    mlflow --version
                     python train.py
                 '''
             }
         }
         
-        stage('Show MLflow Experiments') {
+        stage('Show MLflow Runs') {
             steps {
                 sh '''
                     . venv/bin/activate
-                    mlflow experiment list
+                    mlflow runs list
                 '''
             }
         }
 
-        stage('Show Registered Models') {
+        stage('Show Mlflow Artifacts') {
             steps {
                 sh '''
                     . venv/bin/activate
-                    mlflow model list
+                    mlflow artifacts list
                 '''
             }
         }
