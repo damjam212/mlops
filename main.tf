@@ -115,7 +115,7 @@ resource "aws_instance" "mlflow_server" {
               service docker start
               usermod -a -G docker ec2-user
               docker run -p 5000:5000 --name mlflow-server -d \
-                ghcr.io/mlflow/mlflow mlflow server \
+                 ghcr.io/mlflow/mlflow:v2.14.2 mlflow server \
                 --host 0.0.0.0 \
                 --port 5000 \
                 --default-artifact-root s3://${aws_s3_bucket.mlflow_artifacts.bucket}

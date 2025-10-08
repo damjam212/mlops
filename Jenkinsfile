@@ -1,4 +1,5 @@
 pipeline {
+    // Użyj dowolnego dostępnego agenta, na którym zainstalowany jest Terraform i Python
     agent any
 
     environment {
@@ -13,7 +14,7 @@ pipeline {
             }
         }
 
-        stage('Provision Infrastructure') {
+        stage('Provision Infrastructure with Terraform') {
             steps {
                 sh '''
                     terraform init
@@ -37,27 +38,35 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies & Train Model') {
+        stage('Train Model') {
             steps {
                 sh '''
-                    # Instalujemy zależności bezpośrednio w środowisku systemowym agenta
-                    pip3 install -r requirements.txt
-                    
-                    # Uruchamiamy skrypt treningowy
-                    python3 train.py
+                    # WAŻNE: Zakładamy, że python3 i moduł venv są już zainstalowane na agencie.
+                    # Usunięto komendę 'apk add', ponieważ była specyficzna dla kontenera Alpine.
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install -r requirements.txt
+                    python train.py
                 '''
             }
         }
         
         stage('Show MLflow Experiments') {
             steps {
-                sh 'mlflow experiments list'
+                sh '''
+                    . venv/bin/activate
+                    mlflow experiments list
+                '''
             }
         }
 
         stage('Show Registered Models') {
             steps {
-                sh 'mlflow models list'
+                sh '''
+                    . venv/bin/activate
+                    # Uwaga: Ta komenda zadziała, jeśli model został zarejestrowany w MLflow Model Registry.
+                    mlflow models list
+                '''
             }
         }
     }
